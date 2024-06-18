@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Museum Agent Demo</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Welcome to the Pacific Science Center!</h1>
+        <img src="images/underConstructionRobot.webp" alt="Under Construction Robot">
+        <div id="chatbox">
+            <div id="messages"></div>
+            <input id="message-input" type="text" placeholder="Ask me anything...">
+            <button id="send-button">Send</button>
+        </div>
+    </div>
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
