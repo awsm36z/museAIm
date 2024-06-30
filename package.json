@@ -11,6 +11,8 @@
   "author": "Yassine El Yacoubi",
   "license": "ISC",
   "dependencies": {
+    "@google-cloud/speech": "^6.6.1",
+    "@google-cloud/text-to-speech": "^5.3.0",
     "axios": "^0.21.4",
     "dotenv": "^8.6.0",
     "express": "^4.19.2",
