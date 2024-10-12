@@ -46,3 +46,59 @@ body {
 #send-button:hover {
     background-color: #0056b3;
 }
+
+/* Styling for the robot avatar */
+/* Styling for the robot avatar */
+.robot-avatar {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 20px;
+}
+
+.robot-face {
+    width: 150px;
+    height: 150px;
+    background-color: #333; /* Dark grey */
+    border-radius: 50%;
+    position: relative;
+    box-shadow: 0 0 15px rgba(0, 255, 0, 0.5); /* Neon green glow */
+}
+
+.robot-eyes {
+    display: flex;
+    justify-content: space-between;
+    padding: 40px 20px;
+}
+
+.eye {
+    width: 30px;
+    height: 30px;
+    background-color: #0dcaf0; /* Light blue */
+    border-radius: 50%;
+}
+
+.left-eye {
+    margin-right: 10px;
+}
+
+.right-eye {
+    margin-left: 10px;
+}
+
+.robot-mouth {
+    width: 70px;
+    height: 10px;
+    background-color: #0dcaf0; /* Light blue */
+    border-radius: 5px;
+    position: absolute;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+}
+
+/* Add this for the overall conversation screen */
+.conversation-screen {
+    display: block;
+    text-align: center;
+}

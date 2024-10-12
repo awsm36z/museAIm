@@ -1,10 +1,30 @@
-<div class="conversation-screen" hidden>
-    <div class="agent-avatar">
-      <img src="path-to-avatar.png" alt="MuseAIm Avatar" />
-    </div>
-    <div class="status-indicator">
-      <p>Listening...</p>
-      <!-- Add visual animation here -->
+
+
+<div class="conversation-screen">
+  <head>
+    <link rel="stylesheet" type="text/css" href="/styles.css">
+  </head>
+  
+  <!-- Robot Animation -->
+  <div class="robot-avatar">
+    <div class="robot-face">
+      <div class="robot-eyes">
+        <div class="eye left-eye"></div>
+        <div class="eye right-eye"></div>
+      </div>
+      <div class="robot-mouth"></div>
     </div>
   </div>
-  
+
+  <!-- Status Indicator & Audio Visualizer -->
+  <div class="status-indicator">
+    <p>Listening...</p>
+    <canvas id="visualizer" width="800" height="200"></canvas>
+  </div>
+
+  <!-- Simulate Audio Button -->
+  <button id="simulate-audio-button">Simulate Audio</button>
+</div>
+
+<!-- Link to JavaScript -->
+<script src="/js/audioAnimation.js"></script>
