@@ -26,4 +26,13 @@ router.post('/processAudio', async (req, res) => {
     }
 });
 
+// router.post('/processAudio', (req, res) => {
+//     const { audioBuffer } = req.body;
+    
+//     // Process the audioBuffer here (e.g., send it to a speech recognition service)
+    
+//     // Dummy response for now
+//     res.json({ audioResponse: 'Audio processed successfully!' });
+// });
+
 module.exports = router;
