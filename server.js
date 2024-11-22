@@ -6,6 +6,8 @@ const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
+const { getSpeechToText } = require('./services/speechService');
+
 
 // Increase the body size limit
 app.use(bodyParser.json({ limit: '50mb' })); // You can adjust '50mb' based on your needs
@@ -28,16 +30,16 @@ io.on('connection', (socket) => {
         console.log('Client disconnected');
     });
 
-    socket.on('audioMessage', async (audioBuffer) => {
-        console.log('Received audio buffer from client:', audioBuffer);
-
+    socket.on('audioMessage', async (audioArrayBuffer) => {
+        console.log('\n\n RECIEVED AUDIO MESSAGE AS AUDIOARRAYBUFFER\n\n')
         try {
-            const response = await axios.post('http://localhost:3000/api/processAudio', { audioBuffer });
-            console.log('Audio processing response:', response.data);
-            const { audioResponse } = response.data;
-            socket.emit('botMessage', audioResponse);
+            const audioBuffer = Buffer.from(new Uint8Array(audioArrayBuffer));  // Ensure it's properly converted to Buffer
+            console.log('\n\nReceived audio buffer, size:', audioBuffer.length, '\n\n');
+            
+            const transcription = await getSpeechToText(audioBuffer);  // Process the audio
+            socket.emit('botMessage', transcription);  // Send transcription back
         } catch (error) {
-            console.error('Error processing audio:', error.response ? error.response.data : error.message);
+            console.error('Error processing audio:', error);
         }
     });
 });
