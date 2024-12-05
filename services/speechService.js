@@ -15,7 +15,7 @@ async function getSpeechToText(audioBuffer) {
         content: audioContent,
     };
     const config = {
-        encoding: 'OGG_OPUS',  // The correct encoding
+        encoding: 'WEBM_OPUS',  // The correct encoding
         sampleRateHertz: 48000,  // Set this to match the sample rate of the audio
         languageCode: 'en-US',
         enableAutomaticPunctuation: true,  // Optional: Add punctuation to the transcription

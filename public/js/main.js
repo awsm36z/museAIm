@@ -1,16 +1,14 @@
-const socket = io();
-const Recorder = require("recorder-js");
-// Create the audio context and the recorder instance
+const socket = io('http://localhost:3000');
+const ipcRenderer = window.electronAPI;
+
+
+// Create the audio context
 let audioContext = new (window.AudioContext || window.webkitAudioContext)();
-let recorder = new Recorder(audioContext, {
-    onAnalysed: data => {
-        // Optionally handle analysis data
-        console.log('Analysing audio data:', data);
-    }
-});
+let mediaRecorder;
+let audioChunks = [];
 
 // Monitor silence (threshold in dB)
-let silenceThreshold = -30;
+let silenceThreshold = -30; // Adjust based on your needs
 let silenceTimeout;
 const silenceDuration = 2000; // 2 seconds
 let isRecording = false;
@@ -24,86 +22,114 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     voiceButton.addEventListener('click', () => {
-        console.log('Voice button clicked');
-
-        // Start the audio context if suspended
-        if (audioContext.state === 'suspended') {
-            audioContext.resume().then(() => {
-                console.log('AudioContext resumed');
-            });
+        if (!isRecording) {
+            console.log('Voice button clicked, starting recording...');
+            startRecording();
+            isRecording = true;
+            voiceButton.textContent = '🛑 Stop';
+        } else {
+            console.log('Stopping recording...');
+            stopRecording();
+            isRecording = false;
+            voiceButton.textContent = '🎤 Speak';
         }
-
-        // Access the microphone
-        navigator.mediaDevices.getUserMedia({ audio: true })
-            .then(stream => {
-                recorder.init(stream);
-                startRecording();
-            })
-            .catch(error => {
-                console.error('Error accessing the microphone', error);
-            });
     });
 });
 
 // Start recording
 function startRecording() {
-    recorder.start()
-        .then(() => {
+    // Access the microphone
+    navigator.mediaDevices.getUserMedia({ audio: true })
+        .then(stream => {
+            mediaRecorder = new MediaRecorder(stream,{ mimeType: 'audio/wav' });
+            audioChunks = [];
+
+            mediaRecorder.ondataavailable = event => {
+                audioChunks.push(event.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                console.log('Recording stopped, processing data...');
+                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                audioChunks = [];
+                
+                const reader = new FileReader();
+
+                reader.onloadend = () => {
+                    const audioBuffer = reader.result;
+                    console.log('Audio buffer size:', audioBuffer.byteLength);
+
+                    // Send audioBuffer to server via WebSocket
+                    socket.emit('audioMessage', audioBuffer);
+                    console.log('Audio buffer sent to server:', audioBuffer);
+
+                    // Send the Blob to Electron's main process to save it locally
+                    ipcRenderer.sendToMain('save-audio-file', {
+                        buffer: audioBuffer,
+                        type: 'audio/wav',
+                    });
+                };
+
+                reader.readAsArrayBuffer(audioBlob); // Convert blob to ArrayBuffer
+            };
+
+            mediaRecorder.start();
             console.log('Recording started');
             isRecording = true;
-            monitorSilence();
+            monitorSilence(stream); // Start monitoring silence
         })
         .catch(error => {
-            console.error('Failed to start recording:', error);
+            console.error('Error accessing the microphone', error);
         });
 }
 
-// Stop recording and handle the data
+// Stop recording
 function stopRecording() {
-    recorder.stop()
-        .then(({ blob }) => {
-            console.log('Recording stopped, processing data...');
-            const reader = new FileReader();
-
-            reader.onloadend = () => {
-                const audioBuffer = reader.result;
-                console.log('Audio buffer size:', audioBuffer.byteLength);
-
-                // Send audioBuffer to server via WebSocket
-                socket.emit('audioMessage', audioBuffer);
-                console.log('Audio buffer sent to server:', audioBuffer);
-            };
-
-            reader.readAsArrayBuffer(blob); // Convert blob to ArrayBuffer
-        })
-        .catch(error => {
-            console.error('Failed to stop recording:', error);
-        });
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+        console.log('Recording stopped');
+        isRecording = false;
+    }
 }
 
 // Monitor for silence and auto-stop recording
-function monitorSilence() {
-    recorder.analyse()
-        .then(data => {
-            const average = data.reduce((sum, value) => sum + value, 0) / data.length;
-            const decibels = 20 * Math.log10(average / 255);
+function monitorSilence(stream) {
+    const source = audioContext.createMediaStreamSource(stream);
+    const analyser = audioContext.createAnalyser();
 
-            if (decibels < silenceThreshold && isRecording) {
-                if (!silenceTimeout) {
-                    silenceTimeout = setTimeout(() => {
-                        stopRecording();
-                        silenceTimeout = null;
-                    }, silenceDuration);
-                }
-            } else {
-                clearTimeout(silenceTimeout);
-                silenceTimeout = null;
-            }
+    source.connect(analyser);
+    analyser.fftSize = 256;
 
-            if (isRecording) {
-                requestAnimationFrame(monitorSilence); // Continue monitoring
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
+
+    function checkForSilence() {
+        analyser.getByteFrequencyData(dataArray);
+        const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+        const decibels = 20 * Math.log10(average / 255);
+
+        if (decibels < silenceThreshold && isRecording) {
+            if (!silenceTimeout) {
+                silenceTimeout = setTimeout(() => {
+                    if (mediaRecorder && mediaRecorder.state === "recording") {
+                        mediaRecorder.stop();
+                        console.log('Recording stopped due to silence');
+                        isRecording = false;
+                    }
+                    silenceTimeout = null;
+                }, silenceDuration);
             }
-        });
+        } else {
+            clearTimeout(silenceTimeout);
+            silenceTimeout = null;
+        }
+
+        if (isRecording) {
+            requestAnimationFrame(checkForSilence);
+        }
+    }
+
+    requestAnimationFrame(checkForSilence);
 }
 
 // Listen for bot's audio response from the server

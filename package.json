@@ -2,11 +2,12 @@
   "name": "museum-agent-demo",
   "version": "1.0.0",
   "description": "A standalone demo app for the museum agent at Pacific Science Center",
-  "main": "server.js",
+  "main": "electronMain.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "electron .",
     "dev": "nodemon server.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "bundle": "parcel build public/js/main.js --out-dir public/dist --out-file main.js"
   },
   "author": "Yassine El Yacoubi",
   "license": "ISC",
@@ -17,7 +18,8 @@
     "dotenv": "^8.6.0",
     "express": "^4.19.2",
     "recorder-js": "^1.0.7",
-    "socket.io": "^3.1.2"
+    "socket.io": "^3.1.2",
+    "socket.io-client": "^4.8.1"
   },
   "devDependencies": {
     "electron": "^33.2.0",

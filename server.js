@@ -1,4 +1,4 @@
-const axios = require('axios')
+const axios = require('axios');
 const express = require('express');
 const bodyParser = require('body-parser');
 const http = require('http');
@@ -6,11 +6,13 @@ const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
-const { getSpeechToText } = require('./services/speechService');
+const { getSpeechToText } = require('./services/speechService'); // Import the speech-to-text function
+
+
 
 
 // Increase the body size limit
-app.use(bodyParser.json({ limit: '50mb' })); // You can adjust '50mb' based on your needs
+app.use(bodyParser.json({ limit: '50mb' }));
 app.use(bodyParser.urlencoded({ limit: '50mb', extended: true }));
 
 const apiRoutes = require('./routes/api');
@@ -31,19 +33,17 @@ io.on('connection', (socket) => {
     });
 
     socket.on('audioMessage', async (audioArrayBuffer) => {
-        console.log('\n\n RECIEVED AUDIO MESSAGE AS AUDIOARRAYBUFFER\n\n')
+        console.log('\n\nRECIEVED AUDIO MESSAGE AS AUDIOARRAYBUFFER\n\n');
         try {
-            const audioBuffer = Buffer.from(new Uint8Array(audioArrayBuffer));  // Ensure it's properly converted to Buffer
+            const audioBuffer = Buffer.from(new Uint8Array(audioArrayBuffer));
             console.log('\n\nReceived audio buffer, size:', audioBuffer.length, '\n\n');
             
-            const transcription = await getSpeechToText(audioBuffer);  // Process the audio
-            socket.emit('botMessage', transcription);  // Send transcription back
+            const transcription = await getSpeechToText(audioBuffer);
+            socket.emit('botMessage', transcription);
         } catch (error) {
             console.error('Error processing audio:', error);
         }
     });
 });
 
-// Start the server
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+module.exports = server; // To use it in electronMain.js
