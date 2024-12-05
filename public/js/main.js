@@ -41,7 +41,7 @@ function startRecording() {
     // Access the microphone
     navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
-            mediaRecorder = new MediaRecorder(stream,{ mimeType: 'audio/wav' });
+            mediaRecorder = new MediaRecorder(stream);
             audioChunks = [];
 
             mediaRecorder.ondataavailable = event => {
@@ -50,7 +50,7 @@ function startRecording() {
 
             mediaRecorder.onstop = () => {
                 console.log('Recording stopped, processing data...');
-                const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+                const audioBlob = new Blob(audioChunks);
                 audioChunks = [];
                 
                 const reader = new FileReader();
@@ -66,7 +66,7 @@ function startRecording() {
                     // Send the Blob to Electron's main process to save it locally
                     ipcRenderer.sendToMain('save-audio-file', {
                         buffer: audioBuffer,
-                        type: 'audio/wav',
+                        type: 'audio/ogg',
                     });
                 };
 
