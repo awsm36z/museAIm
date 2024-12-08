@@ -7,8 +7,10 @@ const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
-const { getSpeechToText } = require('./services/speechService'); // Import the speech-to-text function
+const { getSpeechToText } = require('./services/speechService'); 
 const { getAssistantResponse } = require('./services/nlpService');
+const { getTextToSpeech } = require('./services/textToSpeech');
+
 
 
 let messageHistory = [];
@@ -51,6 +53,10 @@ io.on('connection', (socket) => {
             console.log('NLP Response:', nlpResponse);
 
             
+            const audioBase64 = await getTextToSpeech(nlpResponse);
+            console.log('TTS audio generated');
+            socket.emit('botMessage', audioBase64);
+
         } catch (error) {
             console.error('Error processing audio:', error);
         }
