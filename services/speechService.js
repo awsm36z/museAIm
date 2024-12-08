@@ -29,11 +29,10 @@ async function getSpeechToText(audioBuffer) {
     };
 
     try {
-        console.log('\n\ntrying to understand this gibberish!!!!\n\n')
         const [response] = await speechClient.recognize(request);
     
         // Log the entire response object in a readable format
-        console.log(`\n\nWE GOT SOME KIND OF RESPONSE????\n${JSON.stringify(response, null, 2)}`); 
+        // console.log(`\n\nWE GOT SOME KIND OF RESPONSE????\n${JSON.stringify(response, null, 2)}`); 
     
         if (!response.results || response.results.length === 0) {
             console.error('\n\nNO TRANSCRIPTION RESULTS FOUND\n\n');
