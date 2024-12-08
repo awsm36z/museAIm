@@ -64,10 +64,10 @@ function startRecording() {
                     console.log('Audio buffer sent to server:', audioBuffer);
 
                     // Send the Blob to Electron's main process to save it locally
-                    ipcRenderer.sendToMain('save-audio-file', {
-                        buffer: audioBuffer,
-                        type: 'audio/ogg',
-                    });
+                    // ipcRenderer.sendToMain('save-audio-file', {
+                    //     buffer: audioBuffer,
+                    //     type: 'audio/ogg',
+                    // });
                 };
 
                 reader.readAsArrayBuffer(audioBlob); // Convert blob to ArrayBuffer
