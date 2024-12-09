@@ -38,4 +38,4 @@ async function getTextToSpeech(text) {
     }
 }
 
-module.exports = { streamTextToSpeech };
+module.exports = { getTextToSpeech };
