@@ -1,39 +1,39 @@
-const { ElevenLabsClient } = require("elevenlabs");
+const axios = require("axios");
+require("dotenv").config();
 
-const client = new ElevenLabsClient({ apiKey: process.env.ELEVEN_LABS_API_KEY });
-const voiceIDs = { mark: "UgBBYS2sOqTuMpoF3BR0", jessica: "g6xIsTj2HwM6VR4iXFCw" };
+const ELEVENLABS_API_KEY = process.env.ELEVEN_LABS_API_KEY; // Your ElevenLabs API key
+const ELEVENLABS_API_URL = "https://api.elevenlabs.io/v1/text-to-speech";
+const VOICE_ID = "21m00Tcm4TlvDq8ikWAM"; // Replace with your desired voice ID
 
-async function streamTextToSpeech(text, socket) {
+const DEFAULT_VOICE_ID = "21m00Tcm4TlvDq8ikWAM";
+const VOICE_IDS = {
+    mark: "UgBBYS2sOqTuMpoF3BR0",
+    jessica: "g6xIsTj2HwM6VR4iXFCw",
+    default: DEFAULT_VOICE_ID, // Fallback voice
+};
+
+async function getTextToSpeech(text) {
     try {
-        // Split text into chunks if it's too long
-        const MAX_CHARS = 5000; // ElevenLabs' approximate limit
-        const textChunks = text.match(new RegExp(`.{1,${MAX_CHARS}}`, 'g'));
+        // Make a POST request to ElevenLabs TTS API
+        const response = await axios.post(
+            `${ELEVENLABS_API_URL}/${VOICE_IDS.mark}`,
+            {
+                text, // The text to convert to speech
+                model_id: "eleven_multilingual_v2", // Default TTS model
+            },
+            {
+                headers: {
+                    "xi-api-key": ELEVENLABS_API_KEY,
+                    "Content-Type": "application/json",
+                },
+                responseType: "arraybuffer", // Receive the audio as a binary buffer
+            }
+        );
 
-        for (const chunk of textChunks) {
-            console.log(`Sending chunk to ElevenLabs: ${chunk.length} characters`);
-
-            const stream = await client.textToSpeech.convertAsStream(voiceIDs.mark, {
-                text: chunk,
-                model_id: "eleven_multilingual_v2", // Adjust model if needed
-            });
-
-            // Stream audio data to the client
-            stream.on('data', (chunk) => {
-                socket.emit('ttsChunk', chunk.toString('base64'));
-            });
-
-            stream.on('end', () => {
-                console.log('Finished streaming audio chunk');
-                socket.emit('ttsEnd');
-            });
-
-            stream.on('error', (err) => {
-                console.error('Error during ElevenLabs TTS Streaming:', err);
-                socket.emit('ttsError', err.message || 'Error during text-to-speech');
-            });
-        }
+        console.log("TTS audio successfully generated using ElevenLabs.");
+        return Buffer.from(response.data).toString("base64"); // Convert audio to base64
     } catch (error) {
-        console.error("Error during ElevenLabs Text-to-Speech Streaming:", error);
+        console.error("Error generating speech with ElevenLabs:", error.response?.data || error.message);
         throw error;
     }
 }
