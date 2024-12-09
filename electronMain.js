@@ -1,53 +1,66 @@
-// electronMain.js
-const { app, BrowserWindow, ipcMain } = require('electron');
-const path = require('path');
-const fs = require('fs'); // Import the 'fs' module to work with the file system
 const express = require('express');
-const serverApp = require('./server'); // Import your existing Express server
+const http = require('http');
+const { app, BrowserWindow } = require('electron');
+const { Server } = require('socket.io');
+const path = require('path');
 
-function createWindow() {
-    const win = new BrowserWindow({
-      width: 800,
-      height: 600,
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false, // Keeping nodeIntegration false for better security
-      }
-    });
-  
-    win.loadFile('public/screens/homescreen.html');
-    win.webContents.openDevTools();
-  }
-  
-  app.on('ready', () => {
-    serverApp.listen(3000, () => {
-        console.log('Express server running on port 3000');
-    });
-    createWindow();
+let mainWindow;
+const server = express();
+const httpServer = http.createServer(server);
+const io = new Server(httpServer);
+
+const isDev = process.env.NODE_ENV === 'development'; // Check if in development mode
+
+// Serve static files from the 'public' folder
+server.use(express.static(path.join(__dirname, 'public')));
+
+// Serve Socket.IO client script explicitly
+server.use('/socket.io', express.static(path.join(__dirname, 'node_modules/socket.io/client-dist')));
+
+// Socket.IO setup
+io.on('connection', (socket) => {
+    console.log('Socket connected:', socket.id);
 });
-  
-  app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-      app.quit();
-    }
-  });
-  
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
-  });
-  
-  // Handle the save-audio-file event
-  ipcMain.on('save-audio-file', (event, data) => {
-    const filePath = path.join(app.getPath('desktop'), `recorded_audio_${Date.now()}.wav`);
-  
-    fs.writeFile(filePath, Buffer.from(data.buffer), (err) => {
-      if (err) {
-        console.error('Failed to save audio file:', err);
-      } else {
-        console.log('Audio file saved successfully:', filePath);
-      }
+
+// Start the HTTP server on port 3000 for Express
+httpServer.listen(3000, () => {
+    console.log(`Express server running on http://localhost:3000`);
+});
+
+// Function to create the main Electron window
+const createMainWindow = () => {
+    mainWindow = new BrowserWindow({
+        width: 1280,
+        height: 720,
+        webPreferences: {
+            preload: path.join(__dirname, 'preload.js'),
+            contextIsolation: true,
+            nodeIntegration: false,
+        },
     });
-  });
+
+    if (isDev) {
+        // Load Webpack Dev Server URL on port 3001 during development
+        mainWindow.loadURL('http://localhost:3001');
+    } else {
+        // Load production build from the 'dist' folder for distribution
+        mainWindow.loadFile(path.join(__dirname, 'dist/index.html'));
+    }
+};
+
+// Electron app lifecycle events
+app.on('ready', createMainWindow);
+
+// Handle app quit for non-macOS platforms
+app.on('window-all-closed', () => {
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
+});
+
+// Recreate the window on macOS when the dock icon is clicked
+app.on('activate', () => {
+    if (BrowserWindow.getAllWindows().length === 0) {
+        createMainWindow();
+    }
+});
