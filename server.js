@@ -7,11 +7,9 @@ const socketIo = require('socket.io');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
-const { getSpeechToText } = require('./services/speechService'); 
+const { getSpeechToText } = require('./services/speechService');
 const { getAssistantResponse } = require('./services/nlpService');
-const { getTextToSpeech } = require('./services/textToSpeech');
-
-
+const { streamTextToSpeech } = require('./services/textToSpeech');
 
 let messageHistory = [];
 
@@ -37,28 +35,51 @@ io.on('connection', (socket) => {
     });
 
     socket.on('audioMessage', async (audioArrayBuffer) => {
-        // console.log('\n\nRECIEVED AUDIO MESSAGE AS AUDIOARRAYBUFFER\n\n');
         try {
-
             const audioBuffer = Buffer.from(new Uint8Array(audioArrayBuffer));
             console.log('\n\nReceived audio buffer, size:', audioBuffer.length, '\n\n');
-            
-            const transcription = await getSpeechToText(audioBuffer);
-            socket.emit('botMessage', transcription);
-            //messageHistory.push({"user":transcription})
-            // console.log('Transcription:', transcription);
-            
 
-            const nlpResponse = await getAssistantResponse(transcription, [], "currently located at the dinosaurs exbibit surrounded by dinosaurs from different eras.");
+            // Convert speech to text
+            const transcription = await getSpeechToText(audioBuffer);
+            console.log('Transcription:', transcription);
+            socket.emit('botMessage', transcription);
+
+            // Add transcription to message history
+            messageHistory.push({ role: "user", content: transcription });
+
+            // Process the transcription with NLP
+            const nlpResponse = await getAssistantResponse(
+                transcription,
+                messageHistory,
+                "currently located at the dinosaurs exhibit surrounded by dinosaurs from different eras."
+            );
             console.log('NLP Response:', nlpResponse);
 
+            // Stream Text-to-Speech audio
+            //const stream = await streamTextToSpeech(nlpResponse);
+
+            // stream.on('data', (chunk) => {
+            //     console.log('Streaming TTS chunk...');
+            //     socket.emit('ttsChunk', chunk.toString('base64')); // Send each chunk as base64
+            // });
+
+            // stream.on('end', () => {
+            //     console.log('TTS streaming complete');
+            //     socket.emit('ttsEnd'); // Notify the client that streaming is done
+            // });
+
+
+            await streamTextToSpeech(nlpResponse, socket);
+            console.log('TTS audio streamed back to client.');
             
-            const audioBase64 = await getTextToSpeech(nlpResponse);
-            console.log('TTS audio generated');
-            socket.emit('botMessage', audioBase64);
+            // stream.on('error', (error) => {
+            //     console.error('Error during TTS streaming:', error.message || error);
+            //     socket.emit('ttsError', 'Error during TTS streaming');
+            // });
 
         } catch (error) {
             console.error('Error processing audio:', error);
+            socket.emit('error', 'An error occurred while processing the audio.');
         }
     });
 });

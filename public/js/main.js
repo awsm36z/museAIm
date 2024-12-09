@@ -132,12 +132,42 @@ function monitorSilence(stream) {
     requestAnimationFrame(checkForSilence);
 }
 
+// // Listen for bot's audio response from the server
+// socket.on('botMessage', (audioBase64) => {
+//     const audio = new Audio(`data:audio/mp3;base64,${audioBase64}`);
+//     audio.play();
+//     appendMessage(`Agent: [Audio Response]`);
+// });
+
 // Listen for bot's audio response from the server
-socket.on('botMessage', (audioBase64) => {
-    const audio = new Audio(`data:audio/mp3;base64,${audioBase64}`);
-    audio.play();
-    appendMessage(`Agent: [Audio Response]`);
+socket.on('botMessageStream', () => {
+    const audioElement = document.createElement('audio');
+    const mediaSource = new MediaSource();
+
+    audioElement.src = URL.createObjectURL(mediaSource);
+    audioElement.play();
+
+    mediaSource.addEventListener('sourceopen', async () => {
+        const sourceBuffer = mediaSource.addSourceBuffer('audio/mpeg');
+        const response = await fetch('/stream'); // Replace with your server's streaming endpoint
+        const reader = response.body.getReader();
+
+        function pushStream() {
+            reader.read().then(({ done, value }) => {
+                if (done) {
+                    mediaSource.endOfStream();
+                    return;
+                }
+                sourceBuffer.appendBuffer(value);
+                pushStream();
+            });
+        }
+
+        pushStream();
+    });
 });
+
+
 
 // Append messages to the chat window
 function appendMessage(message) {
